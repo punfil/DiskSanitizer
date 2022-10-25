@@ -1,0 +1,27 @@
+[Defines]
+  INF_VERSION = 1.25
+  BASE_NAME = DiskSanitizer
+  FILE_GUID = 4891a452-5cda-4b4b-99da-38653a5bd258
+  MODULE_TYPE = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT = UefiEntry
+ 
+[Sources]
+  main.c
+ 
+[Packages]
+  MdePkg/MdePkg.dec
+ 
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+ 
+[Guids]
+ 
+[Ppis]
+ 
+[Protocols]
+ 
+[FeaturePcd]
+ 
+[Pcd]
