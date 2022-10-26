@@ -8,6 +8,7 @@
  
 [Sources]
   main.c
+  DiskDevice.c
  
 [Packages]
   MdePkg/MdePkg.dec
@@ -21,6 +22,8 @@
 [Ppis]
  
 [Protocols]
+gEfiSimpleTextInputExProtocolGuid
+gEfiDiskIoProtocolGuid
  
 [FeaturePcd]
  
