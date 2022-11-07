@@ -9,6 +9,7 @@
 [Sources]
   main.c
   DiskDevice.c
+  DiskSanitizer.c
  
 [Packages]
   MdePkg/MdePkg.dec
@@ -24,6 +25,11 @@
 [Protocols]
 gEfiSimpleTextInputExProtocolGuid
 gEfiDiskIoProtocolGuid
+gEfiDiskIo2ProtocolGuid
+gEfiBlockIoProtocolGuid
+gEfiBlockIo2ProtocolGuid
+gEfiDevicePathToTextProtocolGuid
+gEfiDevicePathProtocolGuid
  
 [FeaturePcd]
  
