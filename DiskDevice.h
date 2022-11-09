@@ -27,3 +27,5 @@ EFI_STATUS GetDataFromController(EFI_HANDLE imgHandle, disk_device* diskDevice);
 
 EFI_STATUS CloseAllProtocolsForAllDrives(disk_device* diskDevices, EFI_HANDLE imgHandle, UINTN numHandles);
 EFI_STATUS CloseAllProtocolsForDrive(EFI_HANDLE imgHandle, disk_device* diskDevice);
+
+EFI_STATUS PrintDetailedDeviceInfo(EFI_BLOCK_IO_MEDIA* blockIoMedia);

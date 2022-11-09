@@ -15,7 +15,7 @@ CHAR16 EFIAPI ReadKey(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* inputExProtocol){
 EFI_STATUS InitializeProgramVariables(program_variables* programVariables){
     EFI_STATUS status;
 
-    programVariables->chosen_disk = 0;
+    programVariables->chosenDisk = 0;
     programVariables->exitProgram = NOT_EXIT;
 
     status = gBS->LocateProtocol(&gEfiDevicePathToTextProtocolGuid, NULL, (void**)&programVariables->devicePathToTextProtocol);
@@ -58,12 +58,13 @@ EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle){
         menuOption = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
         switch (menuOption){
             case SHOW_CURRENTLY_CHOSEN_DISK:
-                Print(L"You chose drive number %d\n", programVariables.chosen_disk);
+                Print(L"You chose drive number %d\n", programVariables.chosenDisk);
+                PrintDetailedDeviceInfo(programVariables.diskDevices[programVariables.chosenDisk].blockIoProtocol->Media);
                 break;
             case CHOOSE_DISK:
                 PrintAllDrives(programVariables.diskDevices, programVariables.diskDevicesCount);
-                programVariables.chosen_disk = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
-                Print(L"You chose drive number %d\n", programVariables.chosen_disk);
+                programVariables.chosenDisk = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
+                Print(L"You chose drive number %d\n", programVariables.chosenDisk);
                 break;
             case ERASE_DISK:
                 /*TODO*/

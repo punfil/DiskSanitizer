@@ -12,7 +12,7 @@ typedef struct program_variables{
     /*Variables*/
     disk_device diskDevices[8];
     UINTN diskDevicesCount;
-    UINTN chosen_disk;
+    UINTN chosenDisk;
     UINTN exitProgram;
 
 } program_variables;

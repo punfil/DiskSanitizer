@@ -89,3 +89,12 @@ EFI_STATUS CloseAllProtocolsForDrive(EFI_HANDLE imgHandle, disk_device* diskDevi
     gBS->FreePool(diskDevice->textDiskPath);
     return EFI_SUCCESS;
 }
+
+EFI_STATUS PrintDetailedDeviceInfo(EFI_BLOCK_IO_MEDIA* blockIoMedia){
+    if (blockIoMedia == NULL){
+        return EFI_DEVICE_ERROR;
+    }
+    Print(L"Device:\nMedia ID: %d\nRemovable media: %d\nMedia present: %d\nLogical partition: %d\nRead only: %d\nWrite Caching: %d\nBlock size: %d\nIO align: %d\nLast block: %d\n",
+    blockIoMedia->MediaId, blockIoMedia->RemovableMedia, blockIoMedia->MediaPresent, blockIoMedia->LogicalPartition, blockIoMedia->ReadOnly, blockIoMedia->WriteCaching, blockIoMedia->BlockSize, blockIoMedia->IoAlign, blockIoMedia->LastBlock);
+    return EFI_SUCCESS;
+}
