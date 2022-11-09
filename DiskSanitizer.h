@@ -21,6 +21,7 @@ typedef enum menu_options{
     SHOW_CURRENTLY_CHOSEN_DISK,
     CHOOSE_DISK,
     ERASE_DISK,
+    READ_DISK,
     EXIT,
     NOT_EXIT,
 
@@ -31,6 +32,9 @@ CHAR16 EFIAPI ReadKey(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* inputExProtocol);
 EFI_STATUS InitializeProgramVariables(program_variables* programVariables);
 EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle);
 EFI_STATUS DeinitializeProgramVariables(program_variables* programVariables);
+
+EFI_STATUS EraseTheDrive(disk_device* diskDevice, UINT8 numberToWrite);
+EFI_STATUS ShowDiskContent(disk_device* diskDevice);
 
 void PrintAllDrives(disk_device* diskDevices, UINTN numHandles);
 void PrintWelcomeMessage();

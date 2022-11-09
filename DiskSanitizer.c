@@ -15,7 +15,7 @@ CHAR16 EFIAPI ReadKey(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* inputExProtocol){
 EFI_STATUS InitializeProgramVariables(program_variables* programVariables){
     EFI_STATUS status;
 
-    programVariables->chosenDisk = 0;
+    programVariables->chosenDisk = GENERAL_ERR_VAL;
     programVariables->exitProgram = NOT_EXIT;
 
     status = gBS->LocateProtocol(&gEfiDevicePathToTextProtocolGuid, NULL, (void**)&programVariables->devicePathToTextProtocol);
@@ -33,6 +33,56 @@ EFI_STATUS InitializeProgramVariables(program_variables* programVariables){
 }
 
 EFI_STATUS DeinitializeProgramVariables(program_variables* programVariables){
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS EraseTheDrive(disk_device* diskDevice, UINT8 numberToWrite){
+    UINT8* buffer;
+    EFI_STATUS status;
+    buffer = AlocatePool(diskDevice->blockIoProtocol->Media->BlockSize);
+    if (status!=EFI_SUCCESS){
+        ERR("Error allocating memory!\n");
+        return EFI_OUT_OF_RESOURCES;
+    }
+    for (UINTN i=0;i<diskDevice->blockIoProtocol->Media->BlockSize;i++){
+        buffer[i] = numberToWrite;
+    }
+    for (UINTN i=0;i<1;i++){
+        diskDevice->blockIoProtocol->WriteBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void**)&buffer);
+        Print(L"Erased block %d out of %d\n", i, diskDevice->blockIoProtocol->Media->LastBlock);
+    }
+    FreePool(buffer);
+    if (status!=EFI_SUCCESS){
+        ERR("Error freeing memory!\n");
+        return status;
+    }
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS ShowDiskContent(disk_device* diskDevice){
+    UINT8* buffer;
+    EFI_STATUS status = EFI_SUCCESS;
+    buffer = AllocateZeroPool(diskDevice->blockIoProtocol->Media->BlockSize);
+    if (status!=EFI_SUCCESS){
+        ERR("Error allocating memory!\n");
+        return EFI_OUT_OF_RESOURCES;
+    }
+    for (UINTN i=0; i<1;i++){
+        status = diskDevice->blockIoProtocol->ReadBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void**)&buffer);
+        for (UINTN j=0;j<4;j++){
+            if (j%4==0){
+                Print(L"\n");
+            }
+            Print(L"%x ", buffer[j]);
+        }
+        Print(L"\n");
+    }
+    FreePool(buffer);
+    if (status!=EFI_SUCCESS){
+        ERR("Error freeing memory!\n");
+        Print(L"Debug status: %d\n", status);
+        return status;
+    }
     return EFI_SUCCESS;
 }
 
@@ -58,8 +108,14 @@ EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle){
         menuOption = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
         switch (menuOption){
             case SHOW_CURRENTLY_CHOSEN_DISK:
-                Print(L"You chose drive number %d\n", programVariables.chosenDisk);
-                PrintDetailedDeviceInfo(programVariables.diskDevices[programVariables.chosenDisk].blockIoProtocol->Media);
+                if (programVariables.chosenDisk != GENERAL_ERR_VAL){
+                    Print(L"You chose drive number %d\n", programVariables.chosenDisk);
+                    PrintDetailedDeviceInfo(programVariables.diskDevices[programVariables.chosenDisk].blockIoProtocol->Media);
+                }
+                else{
+                    Print(L"You've not chosen any drive yet!\n");
+                }
+                
                 break;
             case CHOOSE_DISK:
                 PrintAllDrives(programVariables.diskDevices, programVariables.diskDevicesCount);
@@ -67,8 +123,16 @@ EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle){
                 Print(L"You chose drive number %d\n", programVariables.chosenDisk);
                 break;
             case ERASE_DISK:
-                /*TODO*/
+                if (programVariables.chosenDisk != GENERAL_ERR_VAL){
+                    EraseTheDrive(&programVariables.diskDevices[programVariables.chosenDisk], 2);
+                }
+                else{
+                    Print(L"You've not chosen any drive yet!\n");
+                }
                 break; 
+            case READ_DISK:
+                ShowDiskContent(&programVariables.diskDevices[programVariables.chosenDisk]);
+                break;
             case EXIT:
                 programVariables.exitProgram = EXIT;
                 break;
@@ -81,10 +145,17 @@ EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle){
 }
 
 void PrintAllDrives(disk_device* diskDevices, UINTN numHandles){
-    Print(L"There are %d drives in the system. Please select one:\n", numHandles);
+    WARN("We only list drives that are not read-only, nor a Logical Partition!\n");
+    UINTN drives_cnt = 0;
     for (UINTN i=0; i < numHandles; i++){
-        Print(L"Device %d: %s\n", i, diskDevices[i].textDiskPath);
+        EFI_BLOCK_IO_MEDIA* media = diskDevices[i].blockIoProtocol->Media;
+        if (media->LogicalPartition==0 && media->ReadOnly==0){
+            drives_cnt++;
+            Print(L"Device %d: %s\n", i, diskDevices[i].textDiskPath);
+        }
+        
     }
+    Print(L"There are %d drives in the system. Please select one:\n", drives_cnt);
 }
 
 void PrintWelcomeMessage(){
@@ -92,7 +163,7 @@ void PrintWelcomeMessage(){
 }
 
 void PrintMenu(){
-    Print(L"Menu:\n%d. Show currently chosen disk.\n%d. Choose disk.\n%d. Erase the disk.\n%d. Exit.\n", SHOW_CURRENTLY_CHOSEN_DISK, CHOOSE_DISK, ERASE_DISK, EXIT); /*Make sure the order is aligned with menuOptions enum*/
+    Print(L"Menu:\n%d. Show currently chosen disk.\n%d. Choose disk.\n%d. Erase the disk.\n%d. Read the disk.\n%d. Exit.\n", SHOW_CURRENTLY_CHOSEN_DISK, CHOOSE_DISK, ERASE_DISK, READ_DISK, EXIT); /*Make sure the order is aligned with menuOptions enum*/
 }
 
 /*

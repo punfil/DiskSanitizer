@@ -1,6 +1,7 @@
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Protocol/DiskIo.h> 
 #include <Protocol/BlockIo.h> 
 #include <Protocol/DiskIo2.h>
