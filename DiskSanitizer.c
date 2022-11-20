@@ -38,13 +38,20 @@ EFI_STATUS DeinitializeProgramVariables(program_variables* programVariables){
 
 EFI_STATUS EraseTheDrive(disk_device* diskDevice, UINT8 numberToWrite){
     UINT8* buffer;
+    EFI_STATUS status;
     buffer = AllocatePool(diskDevice->blockIoProtocol->Media->BlockSize);
-    for (EFI_LBA i=0;i<diskDevice->blockIoProtocol->Media->BlockSize;i++){
+    for (UINTN i=0;i<diskDevice->blockIoProtocol->Media->BlockSize;i++){
         buffer[i] = numberToWrite;
     }
-    for (UINTN i=0;i<10;i++){ //diskDevice->blockIoProtocol->Media->LastBlock
-        diskDevice->blockIoProtocol->WriteBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
-        Print(L"Erased block %d out of %d\n", i, diskDevice->blockIoProtocol->Media->LastBlock);
+    for (EFI_LBA i=0;i<4;i++){ //diskDevice->blockIoProtocol->Media->LastBlock
+        status = diskDevice->blockIoProtocol->WriteBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
+        if (status != EFI_SUCCESS){
+            Print(L"Unable to write the disk block %d, return code %d\n", i, status);
+            //break;
+        }
+        else{
+            Print(L"Erased block %d out of %d\n", i, diskDevice->blockIoProtocol->Media->LastBlock);
+        }
     }
     FreePool(buffer);
     return EFI_SUCCESS;
@@ -54,19 +61,20 @@ EFI_STATUS ShowDiskContent(disk_device* diskDevice){
     UINT8* buffer;
     EFI_STATUS status;
     buffer = AllocateZeroPool(diskDevice->blockIoProtocol->Media->BlockSize);
-    for (EFI_LBA i=0; i<10;i++){
+    for (EFI_LBA i=0; i<4;i++){
         status = diskDevice->blockIoProtocol->ReadBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
         if (status != EFI_SUCCESS){
             Print(L"Unable to read the disk block %d, return code\n", i, status);
-            break;
         }
-        for (UINTN j=0;j<16;j++){
-            if (j%4==0){
-                Print(L"\n");
+        else{
+            for (UINTN j=0;j<4;j++){
+                if (j%4==0){
+                    Print(L"\n");
+                }
+                Print(L"%X ", buffer[j]);
             }
-            Print(L"%X ", buffer[j]);
+            Print(L"\n");
         }
-        Print(L"\n");
     }
     FreePool(buffer);
     return EFI_SUCCESS;
@@ -115,8 +123,8 @@ EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle){
                 break;
             case TEST_WRITE_CONTENT_TO_DISK:
                 if (programVariables.chosenDisk != GENERAL_ERR_VAL){
+                    Print(L"Enter the number to write on the disk\n");
                     UINT8 numberToWrite = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
-                    Print(L"You decided to write %d to the drive!\n", numberToWrite);
                     EraseTheDrive(&programVariables.diskDevices[programVariables.chosenDisk], numberToWrite);
                 }
                 else{
@@ -157,7 +165,7 @@ void PrintAllDrives(disk_device* diskDevices, UINTN numHandles){
     UINTN drives_cnt = 0;
     for (UINTN i=0; i < numHandles; i++){
         EFI_BLOCK_IO_MEDIA* media = diskDevices[i].blockIoProtocol->Media;
-        if (media->LogicalPartition==0 && media->ReadOnly==0){
+        if (media->ReadOnly==0){ //media->LogicalPartition==0 && 
             drives_cnt++;
             Print(L"Device %d: %s\n", i, diskDevices[i].textDiskPath);
         }
