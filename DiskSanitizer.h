@@ -20,11 +20,11 @@ typedef struct program_variables{
 typedef enum menu_options{
     SHOW_CURRENTLY_CHOSEN_DISK,
     CHOOSE_DISK,
+    TEST_WRITE_CONTENT_TO_DISK,
     ERASE_DISK,
     READ_DISK,
     EXIT,
     NOT_EXIT,
-
 } menu_options;
 
 CHAR16 EFIAPI ReadKey(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* inputExProtocol);

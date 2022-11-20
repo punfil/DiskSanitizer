@@ -38,51 +38,37 @@ EFI_STATUS DeinitializeProgramVariables(program_variables* programVariables){
 
 EFI_STATUS EraseTheDrive(disk_device* diskDevice, UINT8 numberToWrite){
     UINT8* buffer;
-    EFI_STATUS status;
-    buffer = AlocatePool(diskDevice->blockIoProtocol->Media->BlockSize);
-    if (status!=EFI_SUCCESS){
-        ERR("Error allocating memory!\n");
-        return EFI_OUT_OF_RESOURCES;
-    }
-    for (UINTN i=0;i<diskDevice->blockIoProtocol->Media->BlockSize;i++){
+    buffer = AllocatePool(diskDevice->blockIoProtocol->Media->BlockSize);
+    for (EFI_LBA i=0;i<diskDevice->blockIoProtocol->Media->BlockSize;i++){
         buffer[i] = numberToWrite;
     }
-    for (UINTN i=0;i<1;i++){
-        diskDevice->blockIoProtocol->WriteBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void**)&buffer);
+    for (UINTN i=0;i<10;i++){ //diskDevice->blockIoProtocol->Media->LastBlock
+        diskDevice->blockIoProtocol->WriteBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
         Print(L"Erased block %d out of %d\n", i, diskDevice->blockIoProtocol->Media->LastBlock);
     }
     FreePool(buffer);
-    if (status!=EFI_SUCCESS){
-        ERR("Error freeing memory!\n");
-        return status;
-    }
     return EFI_SUCCESS;
 }
 
 EFI_STATUS ShowDiskContent(disk_device* diskDevice){
     UINT8* buffer;
-    EFI_STATUS status = EFI_SUCCESS;
+    EFI_STATUS status;
     buffer = AllocateZeroPool(diskDevice->blockIoProtocol->Media->BlockSize);
-    if (status!=EFI_SUCCESS){
-        ERR("Error allocating memory!\n");
-        return EFI_OUT_OF_RESOURCES;
-    }
-    for (UINTN i=0; i<1;i++){
-        status = diskDevice->blockIoProtocol->ReadBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void**)&buffer);
-        for (UINTN j=0;j<4;j++){
+    for (EFI_LBA i=0; i<10;i++){
+        status = diskDevice->blockIoProtocol->ReadBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
+        if (status != EFI_SUCCESS){
+            Print(L"Unable to read the disk block %d, return code\n", i, status);
+            break;
+        }
+        for (UINTN j=0;j<16;j++){
             if (j%4==0){
                 Print(L"\n");
             }
-            Print(L"%x ", buffer[j]);
+            Print(L"%X ", buffer[j]);
         }
         Print(L"\n");
     }
     FreePool(buffer);
-    if (status!=EFI_SUCCESS){
-        ERR("Error freeing memory!\n");
-        Print(L"Debug status: %d\n", status);
-        return status;
-    }
     return EFI_SUCCESS;
 }
 
@@ -115,27 +101,49 @@ EFI_STATUS RunTheProgram(EFI_BOOT_SERVICES* gBS, EFI_HANDLE imgHandle){
                 else{
                     Print(L"You've not chosen any drive yet!\n");
                 }
-                
                 break;
             case CHOOSE_DISK:
                 PrintAllDrives(programVariables.diskDevices, programVariables.diskDevicesCount);
                 programVariables.chosenDisk = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
-                Print(L"You chose drive number %d\n", programVariables.chosenDisk);
+                if (programVariables.chosenDisk < 0 || programVariables.chosenDisk > programVariables.diskDevicesCount){
+                    programVariables.chosenDisk = GENERAL_ERR_VAL;
+                    Print(L"You chose a device that is not in the system!\n");
+                }
+                else{
+                    Print(L"You chose drive number %d\n", programVariables.chosenDisk);   
+                }
                 break;
+            case TEST_WRITE_CONTENT_TO_DISK:
+                if (programVariables.chosenDisk != GENERAL_ERR_VAL){
+                    UINT8 numberToWrite = ReadKey(programVariables.inputExProtocol) - ASCII_NUMBERS_BEGINNING;
+                    Print(L"You decided to write %d to the drive!\n", numberToWrite);
+                    EraseTheDrive(&programVariables.diskDevices[programVariables.chosenDisk], numberToWrite);
+                }
+                else{
+                    Print(L"You've not chosen any drive yet!\n");
+                }
+                break; 
             case ERASE_DISK:
                 if (programVariables.chosenDisk != GENERAL_ERR_VAL){
-                    EraseTheDrive(&programVariables.diskDevices[programVariables.chosenDisk], 2);
+                    EraseTheDrive(&programVariables.diskDevices[programVariables.chosenDisk], 0);
                 }
                 else{
                     Print(L"You've not chosen any drive yet!\n");
                 }
                 break; 
             case READ_DISK:
-                ShowDiskContent(&programVariables.diskDevices[programVariables.chosenDisk]);
+                if (programVariables.chosenDisk != GENERAL_ERR_VAL){
+                    ShowDiskContent(&programVariables.diskDevices[programVariables.chosenDisk]);
+                }
+                else{
+                    Print(L"You've not chosen any drive yet!\n");
+                }
                 break;
             case EXIT:
                 programVariables.exitProgram = EXIT;
                 break;
+            default:
+                Print(L"You entered %d option. It's not correct!\n");
         }
 
     }
@@ -163,7 +171,7 @@ void PrintWelcomeMessage(){
 }
 
 void PrintMenu(){
-    Print(L"Menu:\n%d. Show currently chosen disk.\n%d. Choose disk.\n%d. Erase the disk.\n%d. Read the disk.\n%d. Exit.\n", SHOW_CURRENTLY_CHOSEN_DISK, CHOOSE_DISK, ERASE_DISK, READ_DISK, EXIT); /*Make sure the order is aligned with menuOptions enum*/
+    Print(L"Menu:\n%d. Show currently chosen disk.\n%d. Choose disk.\n%d. Test write content to disk.\n%d. Erase the disk.\n%d. Read the disk.\n%d. Exit.\n", SHOW_CURRENTLY_CHOSEN_DISK, CHOOSE_DISK, TEST_WRITE_CONTENT_TO_DISK, ERASE_DISK, READ_DISK, EXIT); /*Make sure the order is aligned with menuOptions enum*/
 }
 
 /*
