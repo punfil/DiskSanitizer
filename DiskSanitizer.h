@@ -1,6 +1,7 @@
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Protocol/SimpleTextInEx.h>
 
 #include "DiskDevice.h"
 
