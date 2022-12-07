@@ -13,10 +13,7 @@
 
 typedef struct disk_device{
     EFI_HANDLE handle;
-    EFI_DISK_IO_PROTOCOL* diskIoProtocol;
-    EFI_DISK_IO2_PROTOCOL* diskIo2Protocol;
     EFI_BLOCK_IO_PROTOCOL* blockIoProtocol;
-    EFI_BLOCK_IO2_PROTOCOL* blockIo2Protocol;
     EFI_DEVICE_PATH_PROTOCOL* diskPathProtocol;
     CHAR16* textDiskPath;
 

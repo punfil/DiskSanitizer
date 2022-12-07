@@ -14,8 +14,8 @@ UINTN LocateAllDiskDevices(disk_device* diskDevices, EFI_HANDLE imgHandle, EFI_D
         GetDataFromController(imgHandle, &diskDevices[i]);
         diskDevices[i].textDiskPath = devicePathToTextProtocol->ConvertDevicePathToText(diskDevices[i].diskPathProtocol, TRUE, TRUE);
         if (diskDevices[i].textDiskPath == NULL){
-            Print(L"Insufficient resources to allocate a string\n");
-            return GENERAL_ERR_VAL; //EFI_OUT_OF_RESOURCES
+            Print(L"Insufficient resources to allocate a string!\n");
+            return GENERAL_ERR_VAL;
         }
     }
     return numHandles;
@@ -23,24 +23,9 @@ UINTN LocateAllDiskDevices(disk_device* diskDevices, EFI_HANDLE imgHandle, EFI_D
 
 EFI_STATUS GetDataFromController(EFI_HANDLE imgHandle, disk_device* diskDevice){
     EFI_STATUS status;
-    status = gBS->OpenProtocol(diskDevice->handle, &gEfiDiskIoProtocolGuid, (void**)(&diskDevice->diskIoProtocol), imgHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-    if (status != EFI_SUCCESS){
-        ERR("Error loading EFI_DISK_IO_PROTOCOL for the drive\n");
-        return EFI_PROTOCOL_ERROR;
-    }
-    status = gBS->OpenProtocol(diskDevice->handle, &gEfiDiskIo2ProtocolGuid, (void**)(&diskDevice->diskIo2Protocol), imgHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-    if (status != EFI_SUCCESS){
-        ERR("Error loading EFI_DISK_IO2_PROTOCOL for the drive\n");
-        return EFI_PROTOCOL_ERROR;
-    }
     status = gBS->OpenProtocol(diskDevice->handle, &gEfiBlockIoProtocolGuid, (void**)(&diskDevice->blockIoProtocol), imgHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
     if (status != EFI_SUCCESS){
         ERR("Error loading EFI_BLOCK_IO_PROTOCOL for the drive\n");
-        return EFI_PROTOCOL_ERROR;
-    }
-    status = gBS->OpenProtocol(diskDevice->handle, &gEfiBlockIo2ProtocolGuid, (void**)(&diskDevice->blockIo2Protocol), imgHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-    if (status != EFI_SUCCESS){
-        ERR("Error loading EFI_BLOCK_IO2_PROTOCOL for the drive\n");
         return EFI_PROTOCOL_ERROR;
     }
     status = gBS->OpenProtocol(diskDevice->handle, &gEfiDevicePathProtocolGuid, (void**)(&diskDevice->diskPathProtocol), imgHandle, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
@@ -61,24 +46,9 @@ EFI_STATUS CloseAllProtocolsForAllDrives(disk_device* diskDevices, EFI_HANDLE im
 
 EFI_STATUS CloseAllProtocolsForDrive(EFI_HANDLE imgHandle, disk_device* diskDevice){
     EFI_STATUS status;
-    status = gBS->CloseProtocol(diskDevice->handle, &gEfiDiskIoProtocolGuid, imgHandle, NULL);
-    if (status != EFI_SUCCESS){
-        ERR("Error closing EFI_DISK_IO_PROTOCOL for the drive\n");
-        return EFI_PROTOCOL_ERROR;
-    }
-    status = gBS->CloseProtocol(diskDevice->handle, &gEfiDiskIo2ProtocolGuid, imgHandle, NULL);
-    if (status != EFI_SUCCESS){
-        ERR("Error closing EFI_DISK_IO2_PROTOCOL for the drive\n");
-        return EFI_PROTOCOL_ERROR;
-    }
     status = gBS->CloseProtocol(diskDevice->handle, &gEfiBlockIoProtocolGuid, imgHandle, NULL);
     if (status != EFI_SUCCESS){
         ERR("Error closing EFI_BLOCK_IO_PROTOCOL for the drive\n");
-        return EFI_PROTOCOL_ERROR;
-    }
-    status = gBS->CloseProtocol(diskDevice->handle, &gEfiBlockIo2ProtocolGuid, imgHandle, NULL);
-    if (status != EFI_SUCCESS){
-        ERR("Error closing EFI_BLOCK_IO2_PROTOCOL for the drive\n");
         return EFI_PROTOCOL_ERROR;
     }
     status = gBS->CloseProtocol(diskDevice->handle, &gEfiDevicePathProtocolGuid, imgHandle, NULL);
