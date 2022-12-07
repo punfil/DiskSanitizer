@@ -43,11 +43,10 @@ EFI_STATUS EraseTheDrive(disk_device* diskDevice, UINT8 numberToWrite){
     for (UINTN i=0;i<diskDevice->blockIoProtocol->Media->BlockSize;i++){
         buffer[i] = numberToWrite;
     }
-    for (EFI_LBA i=0;i<4;i++){ //diskDevice->blockIoProtocol->Media->LastBlock
+    for (EFI_LBA i=0;i<=diskDevice->blockIoProtocol->Media->LastBlock;i++){
         status = diskDevice->blockIoProtocol->WriteBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
         if (status != EFI_SUCCESS){
             Print(L"Unable to write the disk block %d, return code %d\n", i, status);
-            //break;
         }
         else{
             Print(L"Erased block %d out of %d\n", i, diskDevice->blockIoProtocol->Media->LastBlock);
@@ -61,14 +60,15 @@ EFI_STATUS ShowDiskContent(disk_device* diskDevice){
     UINT8* buffer;
     EFI_STATUS status;
     buffer = AllocateZeroPool(diskDevice->blockIoProtocol->Media->BlockSize);
-    for (EFI_LBA i=0; i<4;i++){
+    for (EFI_LBA i=0; i<=diskDevice->blockIoProtocol->Media->LastBlock;i++){
         status = diskDevice->blockIoProtocol->ReadBlocks(diskDevice->blockIoProtocol, diskDevice->blockIoProtocol->Media->MediaId, i, diskDevice->blockIoProtocol->Media->BlockSize, (void*)buffer);
         if (status != EFI_SUCCESS){
             Print(L"Unable to read the disk block %d, return code\n", i, status);
         }
         else{
-            for (UINTN j=0;j<4;j++){
-                if (j%4==0){
+            Print(L"Printing block %d out of %d\n", i, diskDevice->blockIoProtocol->Media->LastBlock);
+            for (UINTN j=0;j<diskDevice->blockIoProtocol->Media->BlockSize;j++){
+                if (j%16==0){
                     Print(L"\n");
                 }
                 Print(L"%X ", buffer[j]);
@@ -165,7 +165,7 @@ void PrintAllDrives(disk_device* diskDevices, UINTN numHandles){
     UINTN drives_cnt = 0;
     for (UINTN i=0; i < numHandles; i++){
         EFI_BLOCK_IO_MEDIA* media = diskDevices[i].blockIoProtocol->Media;
-        if (media->ReadOnly==0){ //media->LogicalPartition==0 && 
+        if (media->ReadOnly==0){
             drives_cnt++;
             Print(L"Device %d: %s\n", i, diskDevices[i].textDiskPath);
         }
